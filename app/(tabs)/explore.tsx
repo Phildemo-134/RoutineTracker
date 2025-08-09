@@ -4,16 +4,19 @@ import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuth } from '@/hooks/useAuth';
 import { deleteHabit, subscribeHabits } from '@/lib/habits';
 import type { Habit } from '@/types/habit';
 
 export default function SettingsScreen() {
   const [habits, setHabits] = useState<Habit[] | null>(null);
+  const { signOutUser, user } = useAuth();
 
   useEffect(() => {
+    if (!user) return;
     const unsub = subscribeHabits(setHabits);
     return () => unsub();
-  }, []);
+  }, [user]);
 
   function onDelete(habit: Habit) {
     if (Platform.OS === 'web') {
@@ -45,11 +48,16 @@ export default function SettingsScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.headerRow}>
         <ThemedText type="title">Réglages</ThemedText>
-        <Link href="/habit/create" asChild>
-          <Pressable style={styles.addBtn}>
-            <ThemedText style={{ color: 'white' }}>Ajouter</ThemedText>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Link href="/habit/create" asChild>
+            <Pressable style={styles.addBtn}>
+              <ThemedText style={{ color: 'white' }}>Ajouter</ThemedText>
+            </Pressable>
+          </Link>
+          <Pressable style={styles.signOutBtn} onPress={() => signOutUser()}>
+            <ThemedText style={{ color: 'white' }}>Déconnexion</ThemedText>
           </Pressable>
-        </Link>
+        </View>
       </View>
 
       {habits.length === 0 ? (
@@ -93,6 +101,12 @@ const styles = StyleSheet.create({
   },
   addBtn: {
     backgroundColor: '#0a7ea4',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  signOutBtn: {
+    backgroundColor: '#6b7280',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,

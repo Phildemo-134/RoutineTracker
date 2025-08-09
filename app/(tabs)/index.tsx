@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuth } from '@/hooks/useAuth';
 import { subscribeHabitLogsForDate, subscribeHabits } from '@/lib/habits';
 import type { Habit } from '@/types/habit';
 
@@ -16,6 +17,7 @@ export default function HomeScreen() {
   const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
   const [todayStatusById, setTodayStatusById] = useState<Record<string, boolean>>({});
   const router = useRouter();
+  const { user } = useAuth();
 
   function todayYMD(): string {
     const d = new Date();
@@ -26,9 +28,10 @@ export default function HomeScreen() {
   }
 
   useEffect(() => {
+    if (!user) return;
     const unsub = subscribeHabits(setHabits);
     return () => unsub();
-  }, []);
+  }, [user]);
 
   const sections = useMemo<Section[]>(() => {
     if (!habits) return [];
@@ -43,6 +46,7 @@ export default function HomeScreen() {
   }, [habits]);
 
   useEffect(() => {
+    if (!user || !habits) return;
     const today = todayYMD();
     const unsub = subscribeHabitLogsForDate(today, (logs) => {
       if (!habits) return;
@@ -60,7 +64,7 @@ export default function HomeScreen() {
       setTodayStatusById(map);
     });
     return () => unsub();
-  }, [habits]);
+  }, [user, habits]);
 
   if (!habits) {
     return (

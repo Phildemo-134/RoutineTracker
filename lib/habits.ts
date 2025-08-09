@@ -14,13 +14,30 @@ import {
   Timestamp,
   where,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 
+const USERS = 'users';
 const HABITS = 'habits';
 const LOGS = 'habitLogs';
 
+function requireUserId(): string {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Utilisateur non authentifié');
+  return uid;
+}
+
+function userCollection(path: string) {
+  const uid = requireUserId();
+  return collection(db, `${USERS}/${uid}/${path}`);
+}
+
+function userDoc(path: string, id: string) {
+  const uid = requireUserId();
+  return doc(db, `${USERS}/${uid}/${path}/${id}`);
+}
+
 export async function createHabit(input: Omit<Habit, 'id' | 'createdAt'>): Promise<string> {
-  const colRef = collection(db, HABITS);
+  const colRef = userCollection(HABITS);
   const docRef = await addDoc(colRef, {
     ...input,
     createdAt: serverTimestamp(),
@@ -29,31 +46,31 @@ export async function createHabit(input: Omit<Habit, 'id' | 'createdAt'>): Promi
 }
 
 export async function updateHabit(id: string, data: Partial<Habit>): Promise<void> {
-  const docRef = doc(db, HABITS, id);
+  const docRef = userDoc(HABITS, id);
   await setDoc(docRef, data, { merge: true });
 }
 
 export async function getHabit(id: string): Promise<Habit | null> {
-  const snap = await getDoc(doc(db, HABITS, id));
+  const snap = await getDoc(userDoc(HABITS, id));
   if (!snap.exists()) return null;
   const data = snap.data() as any;
   return normalizeHabit(snap.id, data);
 }
 
 export async function listHabits(): Promise<Habit[]> {
-  const q = query(collection(db, HABITS), orderBy('createdAt', 'desc'));
-  const snap = await getDocs(q);
+  const qy = query(userCollection(HABITS), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(qy);
   return snap.docs.map((d) => normalizeHabit(d.id, d.data()));
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-  const ref = doc(db, HABITS, id);
+  const ref = userDoc(HABITS, id);
   await deleteDoc(ref);
 }
 
 export function subscribeHabits(onChange: (habits: Habit[]) => void): () => void {
-  const q = query(collection(db, HABITS), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snap) => {
+  const qy = query(userCollection(HABITS), orderBy('createdAt', 'desc'));
+  return onSnapshot(qy, (snap) => {
     onChange(snap.docs.map((d) => normalizeHabit(d.id, d.data())));
   });
 }
@@ -63,7 +80,7 @@ export async function logHabit(
   date: string,
   params: { completed?: boolean; count?: number }
 ): Promise<string> {
-  const colRef = collection(db, LOGS);
+  const colRef = userCollection(LOGS);
   const payload: any = {
     habitId,
     date,
@@ -78,15 +95,15 @@ export async function logHabit(
 }
 
 export async function listHabitLogsByDate(habitId: string): Promise<HabitLog[]> {
-  const q = query(collection(db, LOGS), where('habitId', '==', habitId));
-  const snap = await getDocs(q);
+  const qy = query(userCollection(LOGS), where('habitId', '==', habitId));
+  const snap = await getDocs(qy);
   const items = snap.docs.map((d) => normalizeLog(d.id, d.data()));
   return items.sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
 export function subscribeHabitLogsForDate(date: string, onChange: (logs: HabitLog[]) => void): () => void {
-  const q = query(collection(db, LOGS), where('date', '==', date));
-  return onSnapshot(q, (snap) => {
+  const qy = query(userCollection(LOGS), where('date', '==', date));
+  return onSnapshot(qy, (snap) => {
     const items = snap.docs.map((d) => normalizeLog(d.id, d.data()));
     onChange(items);
   });
