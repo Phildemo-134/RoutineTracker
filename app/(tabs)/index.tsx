@@ -1,75 +1,128 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, SectionList, StyleSheet, View } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { subscribeHabits } from '@/lib/habits';
+import type { Habit } from '@/types/habit';
+
+type Section = { title: string; data: Habit[] };
 
 export default function HomeScreen() {
+  const [habits, setHabits] = useState<Habit[] | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribeHabits(setHabits);
+    return () => unsub();
+  }, []);
+
+  const sections = useMemo<Section[]>(() => {
+    if (!habits) return [];
+    const byCat = new Map<string, Habit[]>();
+    for (const h of habits) {
+      const key = (h.categoryId && h.categoryId.trim()) || 'Sans catégorie';
+      const arr = byCat.get(key) ?? [];
+      arr.push(h);
+      byCat.set(key, arr);
+    }
+    return Array.from(byCat.entries()).map(([title, data]) => ({ title, data }));
+  }, [habits]);
+
+  if (!habits) {
+    return (
+      <ThemedView style={styles.center}> 
+        <ThemedText>Chargement…</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <ThemedView style={styles.container}>
+      <View style={styles.headerRow}>
+        <ThemedText type="title">Mes habitudes</ThemedText>
+        <Link href="/habit/new" asChild>
+          <Pressable style={styles.addBtn}>
+            <ThemedText style={{ color: 'white' }}>Ajouter</ThemedText>
+          </Pressable>
+        </Link>
+      </View>
+
+      {habits.length === 0 ? (
+        <View style={[styles.center, { paddingTop: 40 }]}> 
+          <ThemedText>Aucune habitude.</ThemedText>
+          <ThemedText style={{ marginTop: 6 }}>Appuie sur "Ajouter" pour commencer.</ThemedText>
+        </View>
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderSectionHeader={({ section }) => (
+            <ThemedText type="subtitle" style={styles.sectionTitle}>{section.title}</ThemedText>
+          )}
+          renderItem={({ item }) => (
+            <Link href={{ pathname: '/habit/[id]', params: { id: item.id } }} asChild>
+              <Pressable style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <ThemedText>{item.name}</ThemedText>
+                  <ThemedText style={styles.muted}>
+                    {item.quantity.kind === 'boolean' ? 'Booléen' : `Objectif: ${item.quantity.target}`}
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.chevron}>›</ThemedText>
+              </Pressable>
+            </Link>
+          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          stickySectionHeadersEnabled={false}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      )}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 16,
   },
-  stepContainer: {
-    gap: 8,
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addBtn: {
+    backgroundColor: '#0a7ea4',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  sectionTitle: {
+    marginTop: 16,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  chevron: {
+    fontSize: 24,
+    opacity: 0.4,
+  },
+  muted: {
+    opacity: 0.6,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#00000012',
   },
 });
