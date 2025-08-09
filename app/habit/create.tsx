@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -22,7 +22,11 @@ export default function NewHabitScreen() {
 
   async function onSave() {
     if (!name.trim()) {
-      Alert.alert('Le nom est requis');
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.alert('Le nom est requis');
+      } else {
+        Alert.alert('Le nom est requis');
+      }
       return;
     }
     setBusy(true);
@@ -43,16 +47,29 @@ export default function NewHabitScreen() {
         archived: false,
       } as Omit<Habit, 'id' | 'createdAt'>);
 
+      // Try to schedule a reminder but do not block if it fails (especially on web)
       if (notifyTime) {
-        const [h, m] = notifyTime.split(':').map((v) => Number(v));
-        if (!Number.isNaN(h) && !Number.isNaN(m)) {
-          await scheduleDailyReminder(h, m);
+        try {
+          const [h, m] = notifyTime.split(':').map((v) => Number(v));
+          if (!Number.isNaN(h) && !Number.isNaN(m)) {
+            await scheduleDailyReminder(h, m);
+          }
+        } catch {
+          // ignore notification scheduling errors
         }
       }
 
-      router.back();
+      if (Platform.OS === 'web') {
+        router.replace('/(tabs)/explore');
+      } else {
+        router.replace('/explore');
+      }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message ?? 'Impossible de créer');
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.alert(e?.message ?? 'Impossible de créer');
+      } else {
+        Alert.alert('Erreur', e?.message ?? 'Impossible de créer');
+      }
     } finally {
       setBusy(false);
     }

@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -55,14 +55,20 @@ export default function HabitDetailScreen() {
   }, [logs]);
 
   async function onCompleteToday() {
-    if (!habit) return;
+    if (!habit || busy || hasDoneToday) return;
     setBusy(true);
     try {
       await logHabit(habit.id, today, { completed: true });
       const l = await listHabitLogsByDate(habit.id);
       setLogs(l);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message ?? 'Action impossible');
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') {
+          window.alert(e?.message ?? 'Action impossible');
+        }
+      } else {
+        Alert.alert('Erreur', e?.message ?? 'Action impossible');
+      }
     } finally {
       setBusy(false);
     }
@@ -86,7 +92,13 @@ export default function HabitDetailScreen() {
       }
       setLogs(l);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message ?? 'Action impossible');
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') {
+          window.alert(e?.message ?? 'Action impossible');
+        }
+      } else {
+        Alert.alert('Erreur', e?.message ?? 'Action impossible');
+      }
     } finally {
       setBusy(false);
     }
@@ -110,7 +122,7 @@ export default function HabitDetailScreen() {
       </View>
 
       {habit.quantity.kind === 'boolean' ? (
-        <Pressable style={[styles.doneBtn, (hasDoneToday || busy) && { opacity: 0.6 }]} onPress={onCompleteToday} disabled={hasDoneToday || busy}>
+        <Pressable style={[styles.doneBtn, (hasDoneToday || busy) && { opacity: 0.6 }]} onPress={onCompleteToday}>
           <ThemedText style={{ color: 'white' }}>{hasDoneToday ? 'Déjà fait aujourd’hui' : busy ? 'En cours…' : 'Marquer comme fait'}</ThemedText>
         </Pressable>
       ) : (

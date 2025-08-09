@@ -2,6 +2,7 @@ import type { Habit, HabitLog, Streak } from '@/types/habit';
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -45,6 +46,11 @@ export async function listHabits(): Promise<Habit[]> {
   return snap.docs.map((d) => normalizeHabit(d.id, d.data()));
 }
 
+export async function deleteHabit(id: string): Promise<void> {
+  const ref = doc(db, HABITS, id);
+  await deleteDoc(ref);
+}
+
 export function subscribeHabits(onChange: (habits: Habit[]) => void): () => void {
   const q = query(collection(db, HABITS), orderBy('createdAt', 'desc'));
   return onSnapshot(q, (snap) => {
@@ -58,13 +64,16 @@ export async function logHabit(
   params: { completed?: boolean; count?: number }
 ): Promise<string> {
   const colRef = collection(db, LOGS);
-  const docRef = await addDoc(colRef, {
+  const payload: any = {
     habitId,
     date,
     completed: params.completed ?? false,
-    count: params.count,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (typeof params.count === 'number') {
+    payload.count = params.count;
+  }
+  const docRef = await addDoc(colRef, payload);
   return docRef.id;
 }
 
@@ -73,6 +82,14 @@ export async function listHabitLogsByDate(habitId: string): Promise<HabitLog[]> 
   const snap = await getDocs(q);
   const items = snap.docs.map((d) => normalizeLog(d.id, d.data()));
   return items.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+export function subscribeHabitLogsForDate(date: string, onChange: (logs: HabitLog[]) => void): () => void {
+  const q = query(collection(db, LOGS), where('date', '==', date));
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => normalizeLog(d.id, d.data()));
+    onChange(items);
+  });
 }
 
 export function computeStreak(logs: HabitLog[]): Streak {

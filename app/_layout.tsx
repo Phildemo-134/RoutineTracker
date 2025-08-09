@@ -22,6 +22,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="habit/create" options={{ title: 'Nouvelle habitude' }} />
+        {/* keep a fallback route, but primary detail lives under (tabs)/habit/[id] */}
         <Stack.Screen name="habit/[id]" options={{ title: 'Habitude' }} />
         <Stack.Screen name="+not-found" />
       </Stack>

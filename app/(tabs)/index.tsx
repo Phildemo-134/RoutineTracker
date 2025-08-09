@@ -1,16 +1,29 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { subscribeHabits } from '@/lib/habits';
+import { subscribeHabitLogsForDate, subscribeHabits } from '@/lib/habits';
 import type { Habit } from '@/types/habit';
 
 type Section = { title: string; data: Habit[] };
 
 export default function HomeScreen() {
   const [habits, setHabits] = useState<Habit[] | null>(null);
+  const insets = useSafeAreaInsets();
+  const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
+  const [todayStatusById, setTodayStatusById] = useState<Record<string, boolean>>({});
+  const router = useRouter();
+
+  function todayYMD(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
 
   useEffect(() => {
     const unsub = subscribeHabits(setHabits);
@@ -29,6 +42,26 @@ export default function HomeScreen() {
     return Array.from(byCat.entries()).map(([title, data]) => ({ title, data }));
   }, [habits]);
 
+  useEffect(() => {
+    const today = todayYMD();
+    const unsub = subscribeHabitLogsForDate(today, (logs) => {
+      if (!habits) return;
+      const map: Record<string, boolean> = {};
+      for (const h of habits) {
+        const perHabit = logs.filter((l) => l.habitId === h.id);
+        const completed = perHabit.some((l) => l.completed);
+        let reached = completed;
+        if (!reached && h.quantity.kind === 'count') {
+          const total = perHabit.reduce((acc, l) => acc + (l.count ?? 0), 0);
+          reached = total >= h.quantity.target;
+        }
+        map[h.id] = reached;
+      }
+      setTodayStatusById(map);
+    });
+    return () => unsub();
+  }, [habits]);
+
   if (!habits) {
     return (
       <ThemedView style={styles.center}> 
@@ -38,14 +71,14 @@ export default function HomeScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView
+      style={[
+        styles.container,
+        isNative ? { paddingTop: 16 + insets.top + 32 } : null,
+      ]}
+    >
       <View style={styles.headerRow}>
         <ThemedText type="title">Mes habitudes</ThemedText>
-        <Link href="/habit/create" asChild>
-          <Pressable style={styles.addBtn}>
-            <ThemedText style={{ color: 'white' }}>Ajouter</ThemedText>
-          </Pressable>
-        </Link>
       </View>
 
       {habits.length === 0 ? (
@@ -60,19 +93,28 @@ export default function HomeScreen() {
           renderSectionHeader={({ section }) => (
             <ThemedText type="subtitle" style={styles.sectionTitle}>{section.title}</ThemedText>
           )}
-          renderItem={({ item }) => (
-            <Link href={{ pathname: '/habit/[id]', params: { id: item.id } }} asChild>
-              <Pressable style={styles.row}>
-                <View style={{ flex: 1 }}>
+          renderItem={({ item }) => {
+            const reached = todayStatusById[item.id] === true;
+            return (
+              <View style={styles.row}>
+                <Pressable
+                  style={{ flex: 1, paddingRight: 12 }}
+                  onPress={() => router.push({ pathname: '/(tabs)/habit/[id]', params: { id: item.id } })}
+                >
                   <ThemedText>{item.name}</ThemedText>
                   <ThemedText style={styles.muted}>
                     {item.quantity.kind === 'boolean' ? 'Booléen' : `Objectif: ${item.quantity.target}`}
                   </ThemedText>
-                </View>
-                <ThemedText style={styles.chevron}>›</ThemedText>
-              </Pressable>
-            </Link>
-          )}
+                </Pressable>
+                <Pressable
+                  style={[styles.statusBtn, reached ? styles.statusBtnDone : styles.statusBtnTodo]}
+                  onPress={() => router.push({ pathname: '/(tabs)/habit/[id]', params: { id: item.id } })}
+                >
+                  <ThemedText style={{ color: 'white' }}>{reached ? 'complété' : 'compléter'}</ThemedText>
+                </Pressable>
+              </View>
+            );
+          }}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={{ paddingBottom: 24 }}
           stickySectionHeadersEnabled={false}
@@ -94,7 +136,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 12,
   },
@@ -117,6 +159,18 @@ const styles = StyleSheet.create({
   chevron: {
     fontSize: 24,
     opacity: 0.4,
+  },
+  statusBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  statusBtnDone: {
+    backgroundColor: '#2ecc71',
+  },
+  statusBtnTodo: {
+    backgroundColor: '#0a7ea4',
   },
   muted: {
     opacity: 0.6,

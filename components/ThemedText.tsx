@@ -16,6 +16,16 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  function flattenStyle(input: any): any[] {
+    if (!input) return [];
+    if (Array.isArray(input)) {
+      const out: any[] = [];
+      for (const item of input) out.push(...flattenStyle(item));
+      return out.filter(Boolean);
+    }
+    return [input];
+  }
+  const styleArray = flattenStyle(style);
 
   return (
     <Text
@@ -26,7 +36,7 @@ export function ThemedText({
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
         type === 'link' ? styles.link : undefined,
-        style,
+        ...styleArray,
       ]}
       {...rest}
     />
