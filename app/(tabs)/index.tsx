@@ -41,7 +41,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.headerRow}>
         <ThemedText type="title">Mes habitudes</ThemedText>
-        <Link href="/habit/new" asChild>
+        <Link href="/habit/create" asChild>
           <Pressable style={styles.addBtn}>
             <ThemedText style={{ color: 'white' }}>Ajouter</ThemedText>
           </Pressable>
