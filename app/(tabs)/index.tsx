@@ -83,6 +83,9 @@ export default function HomeScreen() {
     >
       <View style={styles.headerRow}>
         <ThemedText type="title">Mes habitudes</ThemedText>
+        <Pressable style={styles.coachBtn} onPress={() => router.push('/(tabs)/coach')}>
+          <ThemedText style={{ color: 'white' }}>Coach</ThemedText>
+        </Pressable>
       </View>
 
       {habits.length === 0 ? (
@@ -140,9 +143,15 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  coachBtn: {
+    backgroundColor: '#0a7ea4',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   addBtn: {
     backgroundColor: '#0a7ea4',

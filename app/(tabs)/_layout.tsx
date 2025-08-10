@@ -38,6 +38,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="coach"
+        options={{
+          title: 'Coach',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="message.fill" color={color} />,
+        }}
+      />
       {/* Hide detail route from the tab bar but keep it in the navigator so the tab bar remains visible */}
       <Tabs.Screen name="habit/[id]" options={{ href: null }} />
     </Tabs>
