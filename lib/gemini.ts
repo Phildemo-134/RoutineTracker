@@ -12,7 +12,7 @@ export type GeminiResponse = {
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-const GEMINI_MODEL = 'models/gemini-1.5-flash-latest';
+const GEMINI_MODEL = 'models/gemini-2.0-flash-lite';
 
 function ensureKey() {
   if (!GEMINI_API_KEY) {

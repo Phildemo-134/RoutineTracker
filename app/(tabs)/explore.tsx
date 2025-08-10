@@ -1,9 +1,15 @@
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { HabitListItem } from '@/components/ui/HabitListItem';
+import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { deleteHabit, subscribeHabits } from '@/lib/habits';
 import { getUserProfile, updateUserProfile, type UserProfile } from '@/lib/userProfile';
@@ -15,6 +21,8 @@ export default function SettingsScreen() {
   const [editingName, setEditingName] = useState('');
   const [editingAge, setEditingAge] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const insets = useSafeAreaInsets();
   const { signOutUser, user } = useAuth();
 
   useEffect(() => {
@@ -38,25 +46,28 @@ export default function SettingsScreen() {
   }
 
   async function saveProfile() {
-    try {
-      const name = editingName.trim();
-      const age = parseInt(editingAge, 10);
-      
-      if (!name) {
-        Alert.alert('Erreur', 'Le nom ne peut pas être vide');
-        return;
-      }
-      
-      if (isNaN(age) || age < 1 || age > 120) {
-        Alert.alert('Erreur', 'L\'âge doit être un nombre entre 1 et 120');
-        return;
-      }
+    const name = editingName.trim();
+    const age = parseInt(editingAge, 10);
+    
+    if (!name) {
+      Alert.alert('Erreur', 'Le nom ne peut pas être vide');
+      return;
+    }
+    
+    if (isNaN(age) || age < 1 || age > 120) {
+      Alert.alert('Erreur', 'L\'âge doit être un nombre entre 1 et 120');
+      return;
+    }
 
+    setIsSaving(true);
+    try {
       await updateUserProfile({ name, age });
       setProfile({ name, age, updatedAt: Date.now() });
       setIsEditing(false);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de sauvegarder le profil');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -94,106 +105,203 @@ export default function SettingsScreen() {
     ]);
   }
 
+  const stats = {
+    totalHabits: habits?.length || 0,
+    categories: habits ? [...new Set(habits.map(h => h.categoryId).filter(Boolean))].length : 0,
+  };
+
   if (!habits) {
     return (
-      <ThemedView style={styles.center}>
-        <ThemedText>Chargement…</ThemedText>
+      <ThemedView style={styles.loadingContainer}>
+        <ThemedText type="body" color="secondary">Chargement de vos paramètres…</ThemedText>
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.headerRow}>
-        <ThemedText type="title">Réglages</ThemedText>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Link href="/habit/create" asChild>
-            <Pressable style={styles.addBtn}>
-              <ThemedText style={{ color: 'white' }}>Ajouter</ThemedText>
-            </Pressable>
-          </Link>
-          <Pressable style={styles.signOutBtn} onPress={() => signOutUser()}>
-            <ThemedText style={{ color: 'white' }}>Déconnexion</ThemedText>
-          </Pressable>
+    <ThemedView
+      variant="secondary"
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 20 }
+      ]}
+    >
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.titleSection}>
+            <ThemedText type="heading2">Paramètres</ThemedText>
+            <ThemedText type="body" color="secondary">
+              Gérez votre profil et vos habitudes
+            </ThemedText>
+          </View>
+
+          <View style={styles.headerActions}>
+            <Link href="/habit/create" asChild>
+              <Button
+                title="Nouvelle habitude"
+                variant="primary"
+                size="medium"
+              />
+            </Link>
+          </View>
         </View>
-      </View>
 
-      {/* Section Profil */}
-      <View style={styles.profileSection}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Profil</ThemedText>
-        
-        {!isEditing ? (
-          <View style={styles.profileRow}>
-            <View style={styles.profileInfo}>
-              <ThemedText style={styles.profileLabel}>Nom:</ThemedText>
-              <ThemedText>{profile?.name || 'Non défini'}</ThemedText>
+        {/* Stats Card */}
+        <Card elevation="low" style={styles.statsCard}>
+          <View style={styles.statsContent}>
+            <View style={styles.statItem}>
+              <ThemedText type="heading3">{stats.totalHabits}</ThemedText>
+              <ThemedText type="caption" color="secondary">
+                Habitudes créées
+              </ThemedText>
             </View>
-            <View style={styles.profileInfo}>
-              <ThemedText style={styles.profileLabel}>Âge:</ThemedText>
-              <ThemedText>{profile?.age || 'Non défini'}</ThemedText>
-            </View>
-            <Pressable style={styles.editBtn} onPress={startEditing}>
-              <ThemedText style={{ color: 'white' }}>Modifier</ThemedText>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.profileEditRow}>
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.profileLabel}>Nom:</ThemedText>
-              <TextInput
-                style={styles.input}
-                value={editingName}
-                onChangeText={setEditingName}
-                placeholder="Ton nom"
-                autoFocus
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.profileLabel}>Âge:</ThemedText>
-              <TextInput
-                style={styles.input}
-                value={editingAge}
-                onChangeText={setEditingAge}
-                placeholder="Ton âge"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.editActions}>
-              <Pressable style={styles.saveBtn} onPress={saveProfile}>
-                <ThemedText style={{ color: 'white' }}>Sauvegarder</ThemedText>
-              </Pressable>
-              <Pressable style={styles.cancelBtn} onPress={cancelEditing}>
-                <ThemedText style={{ color: 'white' }}>Annuler</ThemedText>
-              </Pressable>
+            <View style={styles.statItem}>
+              <ThemedText type="heading3">{stats.categories}</ThemedText>
+              <ThemedText type="caption" color="secondary">
+                Catégories
+              </ThemedText>
             </View>
           </View>
-        )}
-      </View>
+        </Card>
 
-      {/* Section Habitudes */}
-      <View style={styles.habitsSection}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Habitudes</ThemedText>
-
-        {habits.length === 0 ? (
-          <View style={[styles.center, { paddingTop: 40 }]}> 
-            <ThemedText>Aucune habitude.</ThemedText>
-            <ThemedText style={{ marginTop: 6 }}>Appuie sur "Ajouter" pour commencer.</ThemedText>
-          </View>
-        ) : (
-          <View>
-            {habits.map((h) => (
-              <View key={h.id} style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText>{h.name}</ThemedText>
+        {/* Profile Section */}
+        <Card elevation="low" style={styles.section}>
+          <View style={styles.sectionContent}>
+            <ThemedText type="title" style={styles.sectionTitle}>
+              Profil utilisateur
+            </ThemedText>
+            
+            {!isEditing ? (
+              <View style={styles.profileDisplay}>
+                <View style={styles.profileRow}>
+                  <View style={styles.profileField}>
+                    <ThemedText type="caption" color="secondary">
+                      Nom
+                    </ThemedText>
+                    <ThemedText type="body" style={styles.profileValue}>
+                      {profile?.name || 'Non défini'}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.profileField}>
+                    <ThemedText type="caption" color="secondary">
+                      Âge
+                    </ThemedText>
+                    <ThemedText type="body" style={styles.profileValue}>
+                      {profile?.age ? `${profile.age} ans` : 'Non défini'}
+                    </ThemedText>
+                  </View>
                 </View>
-                <Pressable style={styles.deleteBtn} onPress={() => onDelete(h)}>
-                  <ThemedText style={{ color: 'white' }}>Supprime</ThemedText>
-                </Pressable>
+                <Button
+                  title="Modifier le profil"
+                  variant="secondary"
+                  size="medium"
+                  onPress={startEditing}
+                  style={styles.editButton}
+                />
               </View>
-            ))}
+            ) : (
+              <View style={styles.profileEdit}>
+                <Input
+                  label="Nom"
+                  value={editingName}
+                  onChangeText={setEditingName}
+                  placeholder="Votre nom"
+                />
+                
+                <Input
+                  label="Âge"
+                  value={editingAge}
+                  onChangeText={setEditingAge}
+                  placeholder="Votre âge"
+                  keyboardType="numeric"
+                />
+
+                <View style={styles.editActions}>
+                  <Button
+                    title="Annuler"
+                    variant="ghost"
+                    size="medium"
+                    onPress={cancelEditing}
+                    style={styles.cancelButton}
+                  />
+                  <Button
+                    title="Sauvegarder"
+                    variant="primary"
+                    size="medium"
+                    loading={isSaving}
+                    onPress={saveProfile}
+                    style={styles.saveButton}
+                  />
+                </View>
+              </View>
+            )}
           </View>
-        )}
-      </View>
+        </Card>
+
+        {/* Habits Management Section */}
+        <Card elevation="low" style={styles.section}>
+          <View style={styles.sectionContent}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="title" style={styles.sectionTitle}>
+                Gestion des habitudes
+              </ThemedText>
+              <Badge variant="default" size="small">
+                {habits.length.toString()}
+              </Badge>
+            </View>
+
+            {habits.length === 0 ? (
+              <View style={styles.emptyState}>
+                <ThemedText type="body" color="secondary" style={styles.emptyText}>
+                  Aucune habitude créée pour le moment
+                </ThemedText>
+                <Link href="/habit/create" asChild>
+                  <Button
+                    title="Créer ma première habitude"
+                    variant="primary"
+                    size="medium"
+                    style={styles.createFirstButton}
+                  />
+                </Link>
+              </View>
+            ) : (
+              <View style={styles.habitsList}>
+                {habits.map((habit) => (
+                  <HabitListItem
+                    key={habit.id}
+                    habit={habit}
+                    onDelete={() => onDelete(habit)}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        </Card>
+
+        {/* Account Section */}
+        <Card elevation="low" style={styles.section}>
+          <View style={styles.sectionContent}>
+            <ThemedText type="title" style={styles.sectionTitle}>
+              Compte
+            </ThemedText>
+            
+            <View style={styles.accountActions}>
+              <Button
+                title="Se déconnecter"
+                variant="error"
+                size="large"
+                onPress={() => signOutUser()}
+                style={styles.signOutButton}
+              />
+            </View>
+          </View>
+        </Card>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -201,106 +309,114 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  center: {
+  loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 20,
   },
-  headerRow: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    paddingTop: 10,
   },
-  addBtn: {
-    backgroundColor: '#0a7ea4',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  titleSection: {
+    flex: 1,
+    marginRight: 16,
   },
-  signOutBtn: {
-    backgroundColor: '#6b7280',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  headerActions: {
+    // Button styles are handled by the Button component
   },
-  row: {
+  statsCard: {
+    marginBottom: 24,
+  },
+  statsContent: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 20,
+  },
+  statItem: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#00000012',
   },
-  deleteBtn: {
-    backgroundColor: '#c0392b',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  section: {
+    marginBottom: 24,
   },
-  editBtn: {
-    backgroundColor: '#0a7ea4',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  sectionContent: {
+    padding: 24,
   },
-  profileSection: {
-    backgroundColor: '#f0f0f0',
-    padding: 16,
-    borderRadius: 10,
+  sectionTitle: {
     marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  profileDisplay: {
+    // Container for profile display mode
   },
   profileRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    gap: 24,
+    marginBottom: 20,
   },
-  profileInfo: {
+  profileField: {
     flex: 1,
-    marginRight: 10,
   },
-  profileLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+  profileValue: {
+    marginTop: 6,
+    fontWeight: '500',
   },
-  profileEditRow: {
-    marginTop: 10,
+  editButton: {
+    alignSelf: 'flex-start',
   },
-  inputGroup: {
-    marginBottom: 10,
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#00000012',
+  profileEdit: {
+    // Container for profile edit mode
   },
   editActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 20,
   },
-  saveBtn: {
-    backgroundColor: '#0a7ea4',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  cancelButton: {
+    minWidth: 100,
   },
-  cancelBtn: {
-    backgroundColor: '#6b7280',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  saveButton: {
+    minWidth: 120,
   },
-  habitsSection: {
-    marginTop: 16,
+  emptyState: {
+    alignItems: 'center',
+    padding: 32,
   },
-  sectionTitle: {
-    marginBottom: 12,
+  emptyText: {
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  createFirstButton: {
+    minWidth: 200,
+  },
+  habitsList: {
+    // Container for habits list
+  },
+  accountActions: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  signOutButton: {
+    minWidth: 200,
   },
 });
