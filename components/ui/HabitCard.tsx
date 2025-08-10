@@ -13,9 +13,10 @@ export type HabitCardProps = {
   isCompleted: boolean;
   onPress: () => void;
   onToggle: () => void;
+  isWeb?: boolean;
 };
 
-export function HabitCard({ habit, isCompleted, onPress, onToggle }: HabitCardProps) {
+export function HabitCard({ habit, isCompleted, onPress, onToggle, isWeb = false }: HabitCardProps) {
   const primaryColor = useThemeColor({}, 'primary');
   const successColor = useThemeColor({}, 'success');
   const progressAnim = React.useRef(new Animated.Value(isCompleted ? 1 : 0)).current;
@@ -51,8 +52,8 @@ export function HabitCard({ habit, isCompleted, onPress, onToggle }: HabitCardPr
 
   return (
     <AnimatedPressable onPress={onPress}>
-      <Card elevation="low" style={styles.card}>
-      <View style={styles.content}>
+      <Card elevation="low" style={[styles.card, isWeb && styles.webCard]}>
+      <View style={[styles.content, isWeb && styles.webContent]}>
         {/* Header with habit name and category */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
@@ -68,7 +69,7 @@ export function HabitCard({ habit, isCompleted, onPress, onToggle }: HabitCardPr
         </View>
 
         {/* Habit details */}
-        <View style={styles.details}>
+        <View style={[styles.details, isWeb && styles.webDetails]}>
           <View style={styles.detailItem}>
             <ThemedText type="caption" color="secondary">
               Fréquence
@@ -135,13 +136,14 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    flex: 1,
   },
   header: {
     marginBottom: 16,
   },
   titleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 8,
@@ -154,6 +156,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    flex: 1,
   },
   detailItem: {
     flex: 1,
@@ -164,6 +167,7 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     marginBottom: 16,
+    marginTop: 'auto',
   },
   actionButton: {
     width: '100%',
@@ -179,5 +183,21 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 2,
+  },
+  webCard: {
+    marginBottom: 0,
+    height: 280,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  webContent: {
+    padding: 16,
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  webDetails: {
+    marginBottom: 16,
+    flex: 1,
   },
 });

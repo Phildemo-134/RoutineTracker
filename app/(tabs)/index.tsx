@@ -104,29 +104,22 @@ export default function HomeScreen() {
       style={[
         styles.container,
         isNative ? { paddingTop: insets.top + 20 } : null,
+        !isNative && styles.webContainer,
       ]}
     >
       {/* Header Section */}
-      <View style={styles.header}>
+      <View style={[styles.header, !isNative && styles.webHeader]}>
         <View style={styles.greetingSection}>
           <ThemedText type="heading2">{getGreeting()}</ThemedText>
           <ThemedText type="body" color="secondary">
             Continuons à construire vos bonnes habitudes
           </ThemedText>
         </View>
-
-        <Button
-          title="Coach IA"
-          variant="primary"
-          size="medium"
-          onPress={() => router.push('/(tabs)/coach')}
-          style={styles.coachButton}
-        />
       </View>
 
       {/* Stats Card */}
       {habits.length > 0 && (
-        <Card elevation="low" style={styles.statsCard}>
+        <Card elevation="low" style={[styles.statsCard, !isNative && styles.webStatsCard]}>
           <View style={styles.statsContent}>
             <View style={styles.statsTextSection}>
               <ThemedText type="heading3">{stats.percentage}%</ThemedText>
@@ -145,7 +138,7 @@ export default function HomeScreen() {
 
       {/* Habits List */}
       {habits.length === 0 ? (
-        <Card elevation="medium" style={styles.emptyStateCard}>
+        <Card elevation="medium" style={[styles.emptyStateCard, !isNative && styles.webEmptyStateCard]}>
           <View style={styles.emptyState}>
             <ThemedText type="heading3" style={styles.emptyTitle}>
               Commencez votre parcours
@@ -163,23 +156,28 @@ export default function HomeScreen() {
           </View>
         </Card>
       ) : (
-        <FlatList
-          data={todayHabits}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <HabitCard
-              habit={item}
-              isCompleted={todayStatusById[item.id] === true}
-              onPress={() => router.push({ pathname: '/(tabs)/habit/[id]', params: { id: item.id } })}
-              onToggle={() => router.push({ pathname: '/(tabs)/habit/[id]', params: { id: item.id } })}
-            />
-          )}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.habitsList}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={!isNative ? styles.webHabitsContainer : null}>
+          <FlatList
+            data={todayHabits}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <HabitCard
+                habit={item}
+                isCompleted={todayStatusById[item.id] === true}
+                onPress={() => router.push({ pathname: '/(tabs)/habit/[id]', params: { id: item.id } })}
+                onToggle={() => router.push({ pathname: '/(tabs)/habit/[id]', params: { id: item.id } })}
+                isWeb={!isNative}
+              />
+            )}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            contentContainerStyle={styles.habitsList}
+            showsVerticalScrollIndicator={false}
+            numColumns={!isNative ? 2 : 1}
+            columnWrapperStyle={!isNative ? styles.webHabitsRow : undefined}
+          />
+        </View>
       )}
     </ThemedView>
   );
@@ -199,17 +197,13 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'flex-start',
     marginBottom: 24,
     paddingTop: 10,
   },
   greetingSection: {
     flex: 1,
-    marginRight: 16,
-  },
-  coachButton: {
-    minWidth: 100,
   },
   statsCard: {
     marginBottom: 24,
@@ -255,5 +249,27 @@ const styles = StyleSheet.create({
   },
   habitsList: {
     paddingBottom: 20,
+  },
+  webContainer: {
+    maxWidth: '100%',
+    paddingHorizontal: 20,
+  },
+  webHeader: {
+    marginBottom: 32,
+    paddingTop: 20,
+  },
+  webStatsCard: {
+    marginBottom: 32,
+  },
+  webEmptyStateCard: {
+    marginTop: 40,
+  },
+  webHabitsContainer: {
+    flex: 1,
+  },
+  webHabitsRow: {
+    justifyContent: 'flex-start',
+    gap: 20,
+    alignItems: 'flex-start',
   },
 });

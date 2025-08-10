@@ -117,11 +117,14 @@ export default function NewHabitScreen() {
       
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.OS === 'web' && styles.webScrollContent
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, Platform.OS === 'web' && styles.webHeader]}>
           <ThemedText type="heading2">Créer une habitude</ThemedText>
           <ThemedText type="body" color="secondary" style={styles.subtitle}>
             Définissez les détails de votre nouvelle habitude
@@ -129,7 +132,7 @@ export default function NewHabitScreen() {
         </View>
 
         {/* Basic Information */}
-        <Card elevation="low" style={styles.section}>
+        <Card elevation="low" style={[styles.section, Platform.OS === 'web' && styles.webSection]}>
           <View style={styles.sectionContent}>
             <ThemedText type="title" style={styles.sectionTitle}>
               Informations de base
@@ -154,7 +157,7 @@ export default function NewHabitScreen() {
         </Card>
 
         {/* Quantity Type */}
-        <Card elevation="low" style={styles.section}>
+        <Card elevation="low" style={[styles.section, Platform.OS === 'web' && styles.webSection]}>
           <View style={styles.sectionContent}>
             <ThemedText type="title" style={styles.sectionTitle}>
               Type de suivi
@@ -184,7 +187,7 @@ export default function NewHabitScreen() {
         </Card>
 
         {/* Frequency */}
-        <Card elevation="low" style={styles.section}>
+        <Card elevation="low" style={[styles.section, Platform.OS === 'web' && styles.webSection]}>
           <View style={styles.sectionContent}>
             <ThemedText type="title" style={styles.sectionTitle}>
               Fréquence
@@ -228,7 +231,7 @@ export default function NewHabitScreen() {
         </Card>
 
         {/* Notifications */}
-        <Card elevation="low" style={styles.section}>
+        <Card elevation="low" style={[styles.section, Platform.OS === 'web' && styles.webSection]}>
           <View style={styles.sectionContent}>
             <ThemedText type="title" style={styles.sectionTitle}>
               Rappel (optionnel)
@@ -249,7 +252,7 @@ export default function NewHabitScreen() {
         </Card>
 
         {/* Save Button */}
-        <View style={styles.saveSection}>
+        <View style={[styles.saveSection, Platform.OS === 'web' && styles.webSaveSection]}>
           <Button
             title={busy ? 'Création en cours...' : 'Créer l\'habitude'}
             variant="primary"
@@ -276,9 +279,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
+  webScrollContent: {
+    paddingHorizontal: 40,
+  },
   header: {
     marginBottom: 32,
     paddingTop: 20,
+  },
+  webHeader: {
+    paddingTop: 0,
   },
   subtitle: {
     marginTop: 8,
@@ -286,6 +295,9 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  webSection: {
+    marginBottom: 0,
   },
   sectionContent: {
     padding: 24,
@@ -307,6 +319,9 @@ const styles = StyleSheet.create({
   saveSection: {
     marginTop: 20,
     paddingHorizontal: 4,
+  },
+  webSaveSection: {
+    paddingHorizontal: 0,
   },
   saveButton: {
     width: '100%',

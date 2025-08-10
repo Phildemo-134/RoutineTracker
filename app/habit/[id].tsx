@@ -106,24 +106,26 @@ export default function HabitDetailScreen() {
 
   if (!habit || !logs) {
     return (
-      <ThemedView style={styles.center}>
+      <ThemedView style={[styles.center, Platform.OS === 'web' && styles.webCenter]}>
         <ThemedText>Chargement…</ThemedText>
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, Platform.OS === 'web' && styles.webContainer]}>
       <Stack.Screen options={{ title: habit.name }} />
 
-      <View style={styles.row}>
+      <View style={[styles.row, Platform.OS === 'web' && styles.webRow]}>
         <ThemedText>Streak actuel: {streak.current}</ThemedText>
         <ThemedText>Meilleur: {streak.best}</ThemedText>
       </View>
 
       {habit.quantity.kind === 'boolean' ? (
         <Pressable style={[styles.doneBtn, (hasDoneToday || busy) && { opacity: 0.6 }]} onPress={onCompleteToday}>
-          <ThemedText style={{ color: 'white' }}>{hasDoneToday ? 'Déjà fait aujourd’hui' : busy ? 'En cours…' : 'Marquer comme fait'}</ThemedText>
+          <ThemedText style={{ color: 'white' }}>
+            {hasDoneToday ? 'Déjà fait aujourd\'hui' : (busy ? 'En cours...' : 'Marquer comme fait')}
+          </ThemedText>
         </Pressable>
       ) : (
         <View style={{ marginTop: 12 }}>
@@ -148,9 +150,9 @@ export default function HabitDetailScreen() {
       {history.length === 0 ? (
         <ThemedText>Aucun historique.</ThemedText>
       ) : (
-        <View style={{ gap: 8, marginTop: 8 }}>
+        <View style={[styles.historyContainer, Platform.OS === 'web' && styles.webHistoryContainer]}>
           {history.map((row) => (
-            <View key={row.date} style={styles.logItem}>
+            <View key={row.date} style={[styles.logItem, Platform.OS === 'web' && styles.webLogItem]}>
               <ThemedText>{row.date}</ThemedText>
               {habit.quantity.kind === 'count' ? (
                 <ThemedText>
@@ -201,5 +203,23 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#00000012',
+  },
+  historyContainer: {
+    marginTop: 8,
+  },
+  webContainer: {
+    padding: 20,
+  },
+  webCenter: {
+    padding: 20,
+  },
+  webRow: {
+    marginTop: 12,
+  },
+  webHistoryContainer: {
+    marginTop: 12,
+  },
+  webLogItem: {
+    paddingVertical: 10,
   },
 });
